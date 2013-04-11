@@ -203,7 +203,8 @@ var mouseWheelHandler = function() {
   // don't account for the buffer to trigger a new batch load, load as soon
   // as we actually begin to use the buffer at all; that is, whenever our
   // scroll offset plus the view's height trespasses the content height.
-  if (!loading && selector.scrollTop() + height > currentHeight) {
+
+  if (!loading && selector.scrollTop() + height >= currentHeight) {
 
     loading = true;
     // since we need to pass our rendering callback more arguments than the
@@ -218,7 +219,7 @@ var mouseWheelHandler = function() {
     // load more next time.
     if (currentHeight < lastHeight + buffer) { lastNeeded++; }
     // if we overload, decrement our needs;
-    else if (currentHeight > lastHeight + buffer) lastNeeded--;
+    else lastNeeded--;
 
     lastHeight = currentHeight;
     console.log(lastNeeded);
@@ -236,7 +237,6 @@ var scrollStop = function() {
 
 // set a watch on the mousewheel.
 scrollWatch();
-
 
 // begin fetching an initial batch.
 fetchData(loadedItems, lastNeeded, function(err, data) {

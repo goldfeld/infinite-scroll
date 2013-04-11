@@ -231,9 +231,17 @@ var mouseWheelHandler = function() {
 
 };
 
+// update height reference and recalculate buffer when window is resized.
+var resizeHandler = function() {
+  height = selector.innerHeight();
+  buffer = getBufferSize(height);
+}
+selector.on('resize', resizeHandler);
+
 var scrollWatch = function() { selector.one('mousewheel', mouseWheelHandler); };
 var scrollStop = function() {
   selector.unbind('mousewheel', mouseWheelHandler);
+  selector.unbind('resize', resizeHandler);
 };
 
 // set a watch on the mousewheel.

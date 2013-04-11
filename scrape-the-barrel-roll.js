@@ -199,29 +199,29 @@ var renderDataCallback = function(err, data,
 };
 
 var mouseWheelHandler = function() {
-  var currentHeight = $(contentId)[0].scrollHeight;
-  // don't account for the buffer to trigger a new batch load, load as soon
-  // as we actually begin to use the buffer at all; that is, whenever our
-  // scroll offset plus the view's height trespasses the content height.
+  var contentHeight = $(contentId)[0].scrollHeight;
 
-  if (!loading && selector.scrollTop() + height >= currentHeight) {
+  var scrollTop = selector.scrollTop();
+  var contentTop = contentHeight - height;
+
+  // load new items whenever our scroll offset goes over our content offset.
+  if (!loading && scrollTop >= contentTop - buffer) {
 
     loading = true;
     // since we need to pass our rendering callback more arguments than the
     // fetchData callback should give, we set an anonymous function as the
     // callback, wrapping our real callback in it's closure.
     fetchData(loadedItems, lastNeeded, function(err, data) {
-      renderDataCallback(err, data,
-        errCallback, loadedCallback, positionCallback);
+      renderDataCallback(err, data, errCallback, loadedCallback);
     });
 
     // if our content height didn't hit the buffered requirement, we need to
     // load more next time.
-    if (currentHeight < lastHeight + buffer) { lastNeeded++; }
+    if (contentHeight < lastHeight + buffer) { lastNeeded++; }
     // if we overload, decrement our needs;
     else lastNeeded--;
 
-    lastHeight = currentHeight;
+    lastHeight = contentHeight;
     console.log(lastNeeded);
   }
 
@@ -240,7 +240,7 @@ scrollWatch();
 
 // begin fetching an initial batch.
 fetchData(loadedItems, lastNeeded, function(err, data) {
-  renderDataCallback(err, data, errCallback, loadedCallback, positionCallback);
+  renderDataCallback(err, data, errCallback, loadedCallback);
 });
 
 return { stop: scrollStop };

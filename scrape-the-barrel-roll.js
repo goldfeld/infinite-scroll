@@ -136,6 +136,17 @@ var tmplForEach = function(target, statement, template) {
 };
 */
 
+/* PASSED OPTIONS */
+//
+var contentCss = exists(options.contentCss) ?
+  ' class=' + options.contentCss.join(' ') : '';
+// the buffer area we need to load in advance, default to double the height.
+var buffer = exists(options.bufferHeight) ? options.bufferHeight : height * 2;
+// since we have no way of knowing the visual size of items coming from the
+// data source, our best guess is to preload just one item, unless the user
+// tells us how many.
+var preload = exists(options.preload) ? options.preload : 1;
+
 /*
  * INITIALIZATION
  */
@@ -145,10 +156,6 @@ var selector = this;
 
 // get the fixed container's height to orient our infinite scroll.
 var height = selector.innerHeight();
-var contentClass = exists(options.contentClass) ? options.contentClass.join(' ') : '';
-
-// the buffer area we need to load in advance, default to double the height.
-var buffer = exists(options.bufferHeight) ? options.bufferHeight : height * 2;
 
 var statement = selector.data('infiniteScroll');
 var template = tmplCreate(selector);
@@ -168,7 +175,7 @@ selector.append(content);
  */
 
 // keep track of how many items we needed to load last time, use it as a base.
-var lastNeeded = 1;
+var lastNeeded = preload;
 // keey track of the content's height on the previous load operation.
 var lastHeight = height;
 // count how many items loaded total so far.

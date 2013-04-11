@@ -18,11 +18,27 @@ var getFakeData = function(offset, limit, callback) {
       span: "span" + (1 + id) % 7
     });
   }
+
   callback(null, data);
 };
 
 $(function() {
-  $('#list').scrapeTheBarrelRoll(getFakeData, { contentClass: ['span12'] });
+
+  handler = $('.barrelbottom').scrapeTheBarrelRoll(getFakeData, {
+    contentCss: ['span12'],
+    preload: 10,
+    bufferHeight: function(height) { return height * 3; },
+
+    loadedCallback: function(newlyLoaded, totalLoaded) {
+      display = $('.loaded-counter');
+      if (!newlyLoaded) {
+        display.text("Loaded all (" + totalLoaded + ") items.");
+        handler.stop();
+      }
+      else { display.text("loaded " + totalLoaded + " items"); }
+    }
+  });
+
 });
 
 })(jQuery);

@@ -36,24 +36,31 @@ var getValue = function(path) {
 
 var sequential = 0;
 var createStamp = function() {
- return 'scrape-the-barrel-roll-' + (new Date).getTime() + sequential++;
+  return 'scrape-the-barrel-roll-' + (new Date).getTime() + sequential++;
 }
+
 
 /*
  * MINIMAL TEMPLATING
  */
+
+// this is used to create a stringified template out of the dom nodes that
+// were inside the element the user selected to make scrollable.
 var tmplCreate = function(selector) {
   var tokens = [];
 
   selector.children().each(function() {
     var self = $(this);
     var bindings = self.data();
-    var stamp = createStamp();
+    var stamp = createStamp(); // unique timestamp-based token string.
     var hasText = false;
-    // iterate each data-attritube binding in a node.
+
+    // iterate each data-attribute binding in a child node.
     for (var bindingType in bindings) {
       var binding = bindings[bindingType];
       
+      // save the timestamps along with the binding (data accessor string) they
+      // represent, for easily substituting whenever we render the template.
       tokens.push({ stamp: stamp, bind: binding });
 
       switch (bindingType) {
@@ -62,24 +69,10 @@ var tmplCreate = function(selector) {
           self.text(stamp);
           break;
         case 'addClass': self.addClass(stamp); break;
-        /*case 'forEach':
-          var statement = value;
-          // save a copy of the children, because we'll only be able to
-          // process them after tmplForEach finishes completely.
-          var tmpl = $(node).children().clone();
-          // empty the nodes to prevent them from being further processed
-          // within this data source context.
-          node.empty();
-          // add a callback to be run at the end of the function.
-          postProcess.push(function() {
-            
-            tmplForEach(statement, tmpl); });
-          break;
-        */
       }
     }
 
-    // create subtemplates for the children, if any.
+    // create subtemplates for each child node.
     subtemplate = tmplCreate(self);
     tokens = tokens.concat(subtemplate.tokens);
     if (!hasText) self.html(subtemplate.html);
@@ -90,59 +83,18 @@ var tmplCreate = function(selector) {
   return { html: selector.html(), tokens: tokens };
 }
 
+// our rendering accepts a template object and a data context, which we will
+// use to match the data in the context to the token array of the template.
 var tmplRender = function(template, context) {
-  // for each node in the template, we're gonna match the instance data
-  // to the binding requested by a data-attribute.
   var tokens = template.tokens;
-  var render = template.html;
+  var rendering = template.html;
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i];
-    render = render.replace(token.stamp, context[token.bind]);
+    rendering = rendering.replace(token.stamp, context[token.bind]);
   }
-  return render;
+  return rendering;
 }
 
-/* outdated rendering
-var tmplForEach = function(target, statement, template) {
-  var keywords = statement.split(' ');
-
-  var item = keywords[1];
-  var source = getValue(keywords[3]);
-
-  // this an array of callbacks that will be called after tmplForEach is
-  // completely done, and it is used for nested forEach bindings, because
-  // when encoutering such bindings we need to save their inner template,
-  // then empty those nodes to prevent them from being bound by the current
-  // context data.
-  // instead it has to be bound by whatever data source is being called for
-  // in the nested forEach.
-  var postProcess = []
-
-  //console.log(template.clone().length);
-  var instances = [];
-  for (var i = 0; i < source.length; i++) {
-    instances.push({ template: template.clone(), data: source[i] });
-  }
-
-  // iterate each instance context for which we are repeating the template.
-  for (var i = 0; i < instances.length; i++) {
-    var instance = instances[i];
-    tmplRender(instance.template, instance.data);
-  }
-
-  // now actually insert the data-bound clones where the template was.
-  for (var i = 0; i < instances.length; i++) {
-    var clone = instances[i].template;
-    target.append(clone);   
-    console.log('1', clone.html(), instances[i].template.length);
-  }
-
-  // run post processing tasks.
-  for (var i = 0; i < postProcess.length; i++) {
-    postProcess[i]();
-  }
-};
-*/
 
 /* BASIC BUILDING BLOCKS */
 
@@ -151,12 +103,17 @@ var selector = this;
 // get the fixed container's height to orient our infinite scroll.
 var height = selector.innerHeight();
 
+
 /* PASSED OPTIONS */
 
 // various hooks for plugin user to react to different outcomes.
 var loadedCallback = assign(options.loadedCallback, noop);
 var positionCallback = assign(options.positionCallback, noop);
 var errCallback = assign(options.errCallback, noop);
+
+// instead of handling every scroll event, we only handle it every so often,
+// by default 50ms.
+var scrollInterval = assign(options.scrollInterval, 50);
 
 // since we have no way of knowing the visual size of items coming from the
 // data source, our best guess is to preload just one item, unless the user
@@ -182,12 +139,16 @@ if (!exists(bufferO)) {
 // initialize the buffer's size.
 buffer = getBufferSize(height);
 
+
 /*
  * INITIALIZATION
  */
 
+// create our template object out of the selector's children,
+// a one-time operation.
 var template = tmplCreate(selector);
-
+// empty the selector's children, so that we can replace it with a content
+// wrapper which will get the rendered instances of the template.
 selector.empty();
 
 // create a content div wrapping the rendered templates, so that we can
@@ -198,7 +159,6 @@ var contentId = '#' + contentStamp;
 var content = $("<div" + contentCss + " id='" + contentStamp + "'></div>");
 selector.append(content);
 
-//tmplForEach(content, statement, template);
 
 /*
  * INFINITE LOADING
@@ -224,7 +184,7 @@ var renderDataCallback = function(err, data,
     errCallback({ msg: "Error: Data property not available from fetch data "
       + "function's callback" });
     return;
-  }// else { console.log(template, data[0], tmplRender(template, data[0])); }
+  }
 
   content = $(contentId);
   // this is where we append new content proper.
@@ -246,6 +206,9 @@ var mouseWheelHandler = function() {
   if (!loading && selector.scrollTop() + height > currentHeight) {
 
     loading = true;
+    // since we need to pass our rendering callback more arguments than the
+    // fetchData callback should give, we set an anonymous function as the
+    // callback, wrapping our real callback in it's closure.
     fetchData(loadedItems, lastNeeded, function(err, data) {
       renderDataCallback(err, data,
         errCallback, loadedCallback, positionCallback);
@@ -254,7 +217,7 @@ var mouseWheelHandler = function() {
     // if our content height didn't hit the buffered requirement, we need to
     // load more next time.
     if (currentHeight < lastHeight + buffer) { lastNeeded++; }
-    // if we overload, decreases our needs;
+    // if we overload, decrement our needs;
     else if (currentHeight > lastHeight + buffer) lastNeeded--;
 
     lastHeight = currentHeight;
@@ -262,17 +225,18 @@ var mouseWheelHandler = function() {
   }
 
   // since the watch runs once, schedule it to run again.
-  setTimeout(scrollWatch, 100);
+  setTimeout(scrollWatch, scrollInterval);
 
 };
 
 var scrollWatch = function() { selector.one('mousewheel', mouseWheelHandler); };
-// set a watch on the mousewheel.
-scrollWatch();
-
 var scrollStop = function() {
   selector.unbind('mousewheel', mouseWheelHandler);
 };
+
+// set a watch on the mousewheel.
+scrollWatch();
+
 
 // begin fetching an initial batch.
 fetchData(loadedItems, lastNeeded, function(err, data) {

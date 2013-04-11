@@ -1,14 +1,13 @@
 // pass in jquery to make sure it's not redefined.
 (function($) {
 
-window.app = {};
-app.items = [
-  { name: 1, description: 'hey' },
-  { name: 3, description: 'ho' },
-];
-
 var getFakeData = function(offset, limit, callback) {
   var data = [];
+  if (offset > 700) {
+    callback(null, []);
+    return;
+  }
+
   for (var i=0; i<limit; i++) {
     var id = offset + i;
     data.push({

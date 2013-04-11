@@ -29,13 +29,23 @@ $(function() {
     bufferHeight: function(height) { return height * 3; },
 
     loadedCallback: function(newlyLoaded, totalLoaded) {
-      display = $('.loaded-counter');
+      var display = $('.loaded-counter');
       if (!newlyLoaded) {
         display.text("Loaded all (" + totalLoaded + ") items.");
         handler.stop();
       }
-      else { display.text("loaded " + totalLoaded + " items"); }
+      else { display.text("Loaded " + totalLoaded + " items"); }
+      console.log(newlyLoaded);
+    },
+
+    positionCallback: function(percentage, absolute, contentSize) {
+      var display = percentage * 100;
+      if (display < 10) display = display.toString().substr(0, 1);
+      else if (display >= 100) display = "100";
+      else display = display.toString().substr(0, 2);
+      $('.position-counter').text("(" + display + "%)");
     }
+
   });
 
 });

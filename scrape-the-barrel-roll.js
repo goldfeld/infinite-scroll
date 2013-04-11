@@ -176,8 +176,7 @@ var loading = false;
 
 // our callback renders the received items, and calls loadedCallback and
 // positionCallback if successful, and errCallback otherwise.
-var renderDataCallback = function(err, data,
-    errCallback, loadedCallback, positionCallback) {
+var renderDataCallback = function(err, data, errCallback, loadedCallback) {
 
   if (exists(err)) { errCallback(err); return; }
   if (!exists(data)) {
@@ -204,6 +203,9 @@ var mouseWheelHandler = function() {
   var scrollTop = selector.scrollTop();
   var contentTop = contentHeight - height;
 
+  var percentage = contentTop <= 0 ? 0 : scrollTop / contentTop;
+  positionCallback(percentage, scrollTop, contentHeight);
+
   // load new items whenever our scroll offset goes over our content offset.
   if (!loading && scrollTop >= contentTop - buffer) {
 
@@ -222,7 +224,6 @@ var mouseWheelHandler = function() {
     else lastNeeded--;
 
     lastHeight = contentHeight;
-    console.log(lastNeeded);
   }
 
   // since the watch runs once, schedule it to run again.

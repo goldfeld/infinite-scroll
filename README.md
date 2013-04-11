@@ -33,3 +33,4 @@ callback(error, data)
 * `scrollInterval`: in milliseconds, how often we should handle the scrolling event for checking if we need to load new content, defaults to `50`.
 * `errCallback`: a custom function that will be called if there's any error coming from fetchData's callback. An error object will be passed, though it's properties depend on what fetchData returned, or a single `msg` property if an error is found inside the plugin.
 * `loadedCallback`: a custom function called after the rendering of new items is successful, and receives how many items were just loaded as first argument, and the current total count of loaded items as second.
+* `positionCallback`: called whenever scrolling is handled (depends on `scrollInterval`), receiving three arguments: the percentage position we are in, the absolute position we are in, and the total height of loaded content so far.
